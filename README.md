@@ -36,3 +36,6 @@ This repo contains the steps to replicate this task and a sample notebook. It ha
     ```dask-worker tcp://192.168.2.1:8786 --no-nanny --nthreads 1```
 
 - Run the Jupyter notebook in this repo on the host machine. It will download the dataset, and run it on the connected Pynq boards.
+
+## Performance comparision 
+![alt text](performance.png "Title")
