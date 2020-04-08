@@ -18,11 +18,12 @@ This repo contains the steps to replicate this task and a sample notebook. It ha
 
     ```scp requirements.txt xilinx@192.168.2.99:/home/xilinx```
 
-    Installing the Bnn-Pynq requires the BOARD env variable to be set. SSH into the Pynq board and run:
+    Installing the Bnn-Pynq requires the BOARD env variable to be set. SSH into the Pynq board and run as sudo:
 
-    ```echo export BOARD=Pynq-Z1 >> ~/.bashrc && source ~/.bashrc```
-
-    ```sudo pip3 install -r requirements.txt```
+    ```
+    echo export BOARD=Pynq-Z1 >> /root/.bashrc && source /root/.bashrc
+    sudo pip3 install -r requirements.txt
+    ```
 
 - Note that if you are connecting more than 1 Pynq boards, each of them will have to be assigned a unique IP address. This can be done by modifying the default value `192.168.2.99` to something else (`192.168.2.100` etc.) in `/etc/network/interfaces.d/eth0`
 
