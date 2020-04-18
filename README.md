@@ -39,3 +39,19 @@ This repo contains the steps to replicate this task and a sample notebook. It ha
 
 ## Performance comparision 
 ![alt text](performance.png "Title")
+
+## Multi-device
+
+- We can also use Dask to parallelize our task if multiple different boards/devices are attached to the same server. See the `multi-device-example.ipynb` example. 
+
+NOTE: In this case, when starting the dask-worker, you have to specify which device/board you want to use like this:
+
+```export DEVICE=<name-of-device> && dask-worker <scheduler-ip> --no-nanny --nthreads 1```
+
+`<name-of-device>` (`xilinx_u200_xdma_201830_2` for example) can be obtained by running the following in the python3 interpreter on the server with the boards:
+
+```python
+from pynq import Device
+for i in Device.devices:
+    print(i.name)
+```
