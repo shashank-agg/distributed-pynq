@@ -1,0 +1,216 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 186,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table style=\"border: 2px solid white;\">\n",
+       "<tr>\n",
+       "<td style=\"vertical-align: top; border: 0px solid white\">\n",
+       "<h3 style=\"text-align: left;\">Client</h3>\n",
+       "<ul style=\"text-align: left; list-style: none; margin: 0; padding: 0;\">\n",
+       "  <li><b>Scheduler: </b>tcp://131.180.106.138:8786</li>\n",
+       "</ul>\n",
+       "</td>\n",
+       "<td style=\"vertical-align: top; border: 0px solid white\">\n",
+       "<h3 style=\"text-align: left;\">Cluster</h3>\n",
+       "<ul style=\"text-align: left; list-style:none; margin: 0; padding: 0;\">\n",
+       "  <li><b>Workers: </b>2</li>\n",
+       "  <li><b>Cores: </b>2</li>\n",
+       "  <li><b>Memory: </b>5.05 GB</li>\n",
+       "</ul>\n",
+       "</td>\n",
+       "</tr>\n",
+       "</table>"
+      ],
+      "text/plain": [
+       "<Client: 'tcp://131.180.106.138:8786' processes=2 threads=2, memory=5.05 GB>"
+      ]
+     },
+     "execution_count": 186,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "from dask.distributed import Client, progress, get_worker\n",
+    "import numpy as np\n",
+    "\n",
+    "# Insert the scheduler IP below (available after running the \"dask-scheduler\" command)\n",
+    "client = Client(\"tcp://131.180.106.138:8786\")\n",
+    "client"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 187,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "def run_on_worker(data):\n",
+    "    print(f\"Received task from scheduler with data of type: {type(data)}\")\n",
+    "    from multiprocessing import Process,Queue\n",
+    "    import time\n",
+    "    import numpy as np\n",
+    "    t0 = time.time()\n",
+    "    \n",
+    "    def child_process(queue, data):\n",
+    "        import pynq\n",
+    "        from pynq import Device\n",
+    "        import os\n",
+    "        \n",
+    "        # Select right device\n",
+    "        device_name = os.environ['DEVICE']\n",
+    "        device = [i for i in Device.devices if i.name == os.environ['DEVICE']]\n",
+    "        if len(device) == 1:         \n",
+    "            print(f\"Selecting device: {device[0].name}\")\n",
+    "            Device.active_device = device[0]\n",
+    "        else:\n",
+    "            print(f\"No device found with name: {os.environ['DEVICE']}\")\n",
+    "            return None\n",
+    "\n",
+    "        ol = pynq.Overlay(\"pynq-notebooks/1-introduction/intro.xclbin\")\n",
+    "        vadd = ol.vadd_1\n",
+    "\n",
+    "        # allocate buffers\n",
+    "        (input1, input2) = data\n",
+    "        shape = input1.shape\n",
+    "        print(f\"Adding arrays of shape: {shape}\")\n",
+    "        size = shape[0]*shape[1]\n",
+    "        in1_vadd = pynq.allocate(shape, np.uint32)\n",
+    "        in2_vadd = pynq.allocate(shape, np.uint32)\n",
+    "        out = pynq.allocate(shape, np.uint32)\n",
+    "\n",
+    "        # initialize input\n",
+    "        in1_vadd[:] = input1\n",
+    "        in2_vadd[:] = input2\n",
+    "\n",
+    "        # send data to the device\n",
+    "        in1_vadd.sync_to_device()\n",
+    "        in2_vadd.sync_to_device()\n",
+    "\n",
+    "        # call kernel\n",
+    "        vadd.call(in1_vadd, in2_vadd, out, size)\n",
+    "\n",
+    "        # get data from the device\n",
+    "        out.sync_from_device()\n",
+    "\n",
+    "        # clean up\n",
+    "        del in1_vadd\n",
+    "        del in2_vadd\n",
+    "        ol.free()\n",
+    "        queue.put(np.copy(out))\n",
+    "        del out\n",
+    "        \n",
+    "    # We need to run the Pynq overlay in a new forked process since it cannot be run in a non-Main thread\n",
+    "    queue = Queue()\n",
+    "    p = Process(target=child_process, args=(queue,data))\n",
+    "    p.start()\n",
+    "    result = queue.get()\n",
+    "    p.join()\n",
+    "    t1 = time.time()\n",
+    "    print(\"EXECUTION TIME ON THIS WORKER: \", t1 - t0)\n",
+    "    return result"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 188,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Split image data into 2 chunk(s)\n",
+      "Received from workers:  [array([[266, 264, 265, ..., 278, 215, 291],\n",
+      "       [221, 231, 202, ..., 260, 209, 246],\n",
+      "       [280, 222, 208, ..., 283, 220, 276],\n",
+      "       ...,\n",
+      "       [223, 278, 203, ..., 260, 278, 287],\n",
+      "       [219, 237, 221, ..., 240, 207, 244],\n",
+      "       [269, 289, 259, ..., 299, 299, 294]], dtype=uint32), array([[268, 221, 299, ..., 211, 223, 234],\n",
+      "       [246, 284, 276, ..., 254, 276, 285],\n",
+      "       [215, 202, 254, ..., 232, 226, 281],\n",
+      "       ...,\n",
+      "       [261, 215, 232, ..., 231, 256, 296],\n",
+      "       [274, 241, 283, ..., 249, 218, 273],\n",
+      "       [248, 202, 243, ..., 262, 235, 262]], dtype=uint32)]\n",
+      "SUCCESS!\n",
+      "TOTAL EXECUTION TIME:  3.2790794372558594\n"
+     ]
+    }
+   ],
+   "source": [
+    "import time\n",
+    "\n",
+    "t0 = time.time()\n",
+    "\n",
+    "# Initialise input data\n",
+    "input_shape = (4096,4096)\n",
+    "input1 = np.random.randint(low=0, high=100, size=input_shape, dtype=np.uint32)\n",
+    "input2 = np.full(input_shape, 200)\n",
+    "\n",
+    "\n",
+    "# Split input data based on no. of workers\n",
+    "num_of_workers = len(client.scheduler_info()[\"workers\"])\n",
+    "data_split = []\n",
+    "start = 0\n",
+    "chunk_size = int(len(input1)/num_of_workers)\n",
+    "for i in range(num_of_workers):\n",
+    "    data_split.append((input1[start: start+chunk_size], input2[start: start+chunk_size]))\n",
+    "    start += chunk_size\n",
+    "print(f\"Split image data into {num_of_workers} chunk(s)\")\n",
+    "    \n",
+    "\n",
+    "# Scatter the data to the workers before calling run_on_worker on the workers\n",
+    "distributed_data = client.scatter(data_split)\n",
+    "futures = client.map(run_on_worker, distributed_data)\n",
+    "\n",
+    "#Print the output returned by the workers\n",
+    "results = client.gather(futures)\n",
+    "print(\"Received from workers: \", results)\n",
+    "\n",
+    "t1 = time.time()\n",
+    "\n",
+    "\n",
+    "# check results\n",
+    "mergedResult = np.concatenate(results, axis=0)\n",
+    "msg = \"SUCCESS!\" if np.array_equal(mergedResult, input1 + input2) else \"FAILURE!\"\n",
+    "print(msg)\n",
+    "\n",
+    "\n",
+    "print(\"TOTAL EXECUTION TIME: \", t1 - t0)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.8"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 1
+}
