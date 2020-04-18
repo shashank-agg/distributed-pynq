@@ -20,7 +20,7 @@ This repo contains the steps to replicate this task and a sample notebook. It ha
 
     Installing the Bnn-Pynq requires the BOARD env variable to be set. SSH into the Pynq board and run as sudo:
 
-    ```
+    ```shell
     echo export BOARD=Pynq-Z1 >> /root/.bashrc && source /root/.bashrc
     sudo pip3 install -r requirements.txt
     ```
@@ -46,7 +46,9 @@ This repo contains the steps to replicate this task and a sample notebook. It ha
 
 NOTE: In this case, when starting the dask-worker, you have to specify which device/board you want to use like this:
 
-```export DEVICE=<name-of-device> && dask-worker <scheduler-ip> --no-nanny --nthreads 1```
+```shell
+export DEVICE=<name-of-device> && dask-worker <scheduler-ip> --no-nanny --nthreads 1
+```
 
 `<name-of-device>` (`xilinx_u200_xdma_201830_2` for example) can be obtained by running the following in the python3 interpreter on the server with the boards:
 
