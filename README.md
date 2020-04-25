@@ -57,3 +57,9 @@ from pynq import Device
 for i in Device.devices:
     print(i.name)
 ```
+
+
+## Using Arrow Tables 
+- Dask implements custom serializers for specific data types (https://github.com/dask/distributed/tree/master/distributed/protocol), including Arrow Table and RecordBatch. These are used automatically if the data being distributed is of that data type (i.e., no code change is required from the dask user).
+
+- In the notebook `dask-with-arrow.ipynb`, we compare performance for distributing a large csv as an Arrow Table and as a Pandas Dataframe. Dask's `scatter` operation is ~1.4x faster for Arrow as compared to pd.DataFrame. This is likely due to faster (de)serialization with Arrow.
