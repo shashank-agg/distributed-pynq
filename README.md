@@ -63,3 +63,9 @@ for i in Device.devices:
 - Dask implements custom serializers for specific data types (https://github.com/dask/distributed/tree/master/distributed/protocol), including Arrow Table and RecordBatch. These are used automatically if the data being distributed is of that data type (i.e., no code change is required from the dask user).
 
 - In the notebook `dask-with-arrow.ipynb`, we compare performance for distributing a large csv as an Arrow Table and as a Pandas Dataframe. Dask's `scatter` operation is ~1.4x faster for Arrow as compared to pd.DataFrame. This is likely due to faster (de)serialization with Arrow.
+
+
+## Using Fletcher
+- Fletcher's python host API  (https://github.com/abs-tudelft/fletcher/tree/develop/runtime/python) can be used to communicate to any supported platform runtime via Arrow Record Batches. In the example `Fletcher.ipynb`, Dask is used to split and distribute a Record Batch to workers, and the workers use Fletcher to pass them to the underlying `sum` IP which adds up all the numbers in the RB. 
+
+- The setup was tested using OC-Accel (https://opencapi.github.io/oc-accel-doc/)
