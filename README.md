@@ -68,4 +68,7 @@ for i in Device.devices:
 ## Using Fletcher
 - Fletcher's python host API  (https://github.com/abs-tudelft/fletcher/tree/develop/runtime/python) can be used to communicate to any supported platform runtime via Arrow Record Batches. In the example `Fletcher.ipynb`, Dask is used to split and distribute a Record Batch to workers, and the workers use Fletcher to pass them to the underlying `sum` IP which adds up all the numbers in the RB. 
 
-- The setup was tested using OC-Accel (https://opencapi.github.io/oc-accel-doc/)
+- The setup was tested using OC-Accel's simulator (https://opencapi.github.io/oc-accel-doc/) and on AWS-F1 instances.
+
+- For AWS, performance was compared for 1 vs 2 instances running the same `sum` accelerator. 
+![alt text](fletcher-aws.png "Perf")
