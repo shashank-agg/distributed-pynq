@@ -1,4 +1,4 @@
 pynq==2.5.1
 dask==2.14.0
-distributed==2.14.0
+distributed==2021.10.0
 git+https://github.com/Xilinx/BNN-PYNQ.git
